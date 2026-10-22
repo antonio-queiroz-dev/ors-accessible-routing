@@ -10,6 +10,9 @@ services:
       CAMERA_URL: ${CAMERA_URL:-}
       JAVA_OPTS: ${API_JAVA_OPTS:--Xmx384m}
       TZ: ${API_FUSO:-America/Bahia}
+      AREA_BBOX: ${AREA_BBOX:--38.5160,-12.9830,-38.5010,-12.9640}
+      AREA_NOME: ${AREA_NOME:-Centro Histórico de Salvador}
+      CORS_ORIGENS: ${CORS_ORIGENS:-*}
       ROTA_PERFIS: ${ROTA_PERFIS:-wheelchair,foot-walking}
       ROTA_CONFIANCA_MINIMA: ${ROTA_CONFIANCA_MINIMA:-0.6}
       ROTA_LADO_QUADRADO_METROS: ${ROTA_LADO_QUADRADO_METROS:-12}

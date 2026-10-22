@@ -12,10 +12,12 @@ import org.springframework.web.bind.annotation.RestController;
 public class RotaController {
 
     private final RotaService servico;
+    private final AreaAtendida area;
     private final List<String> perfis;
 
-    public RotaController(RotaService servico, @Value("${rota.perfis}") List<String> perfis) {
+    public RotaController(RotaService servico, AreaAtendida area, @Value("${rota.perfis}") List<String> perfis) {
         this.servico = servico;
+        this.area = area;
         this.perfis = perfis;
     }
 
@@ -31,6 +33,11 @@ public class RotaController {
         if (!perfis.contains(perfil)) {
             throw new ParametroInvalidoException("perfil deve ser um destes: " + String.join(", ", perfis));
         }
-        return servico.calcular(Ponto.ler(origem, "origem"), Ponto.ler(destino, "destino"), perfil, considerarObstaculos);
+        Ponto a = Ponto.ler(origem, "origem");
+        Ponto b = Ponto.ler(destino, "destino");
+        // Valida antes de chamar a câmera e o ORS: ponto fora da área não gasta cota
+        area.validar(a, "origem");
+        area.validar(b, "destino");
+        return servico.calcular(a, b, perfil, considerarObstaculos);
     }
 }

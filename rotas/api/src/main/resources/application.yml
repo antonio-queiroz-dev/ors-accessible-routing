@@ -12,6 +12,15 @@ camera:
   # Vazio: usa os obstáculos de teste fixos de obstaculos-teste.json
   url: ${CAMERA_URL:}
 
+area:
+  # Área piloto: origem e destino fora dela dão 400. minLon,minLat,maxLon,maxLat; vazio desliga
+  bbox: ${AREA_BBOX:-38.5160,-12.9830,-38.5010,-12.9640}
+  nome: ${AREA_NOME:Centro Histórico de Salvador}
+
+cors:
+  # Domínios do front, separados por vírgula ("*" libera todos; trocar pelo domínio real na VPS)
+  origens: ${CORS_ORIGENS:*}
+
 rota:
   perfis: ${ROTA_PERFIS:wheelchair,foot-walking}
   # Obstáculos abaixo disso são ignorados no cálculo da rota (quando a câmera manda a confiança)
