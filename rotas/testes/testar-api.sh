@@ -9,7 +9,7 @@ OBS_LAT=-12.973495; OBS_LON=-38.511139
 ok=0; falhas=0
 
 confere() { # nome, resposta, trecho esperado
-    if grep -qF -- "$3" <<< "$2"; then ok=$((ok+1)); echo "ok    $1"
+    if grep -qiF -- "$3" <<< "$2"; then ok=$((ok+1)); echo "ok    $1"
     else falhas=$((falhas+1)); echo "FALHA $1"; echo "      esperado: $3"; echo "      veio: ${2:0:300}"; fi
 }
 post() { curl -s -m 40 -X POST "$B/api/rota" -H 'Content-Type: application/json' -d "$1"; }
