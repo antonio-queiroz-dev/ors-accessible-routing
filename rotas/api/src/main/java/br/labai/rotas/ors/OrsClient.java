@@ -3,6 +3,7 @@ package br.labai.rotas.ors;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import org.springframework.http.MediaType;
 import org.springframework.stereotype.Component;
@@ -53,8 +54,9 @@ public class OrsClient {
 
     private OrsException erroDoOrs(RestClientResponseException e) {
         int status = e.getStatusCode().value();
-        if (status == 429) {
-            return new OrsException(OrsException.COTA_ESGOTADA, "cota da API pública esgotada");
+        // 429 é a cota por minuto; a cota diária pode vir como 403 com "quota" na mensagem
+        if (status == 429 || (status == 403 && e.getResponseBodyAsString().toLowerCase(Locale.ROOT).contains("quota"))) {
+            return new OrsException(OrsException.COTA_ESGOTADA, "cota da API pública esgotada (HTTP " + status + ")");
         }
         if (status == 401 || status == 403) {
             return new OrsException(OrsException.CHAVE_INVALIDA, "ORS_API_KEY ausente ou inválida");

@@ -6,6 +6,7 @@ import io.swagger.v3.oas.annotations.Parameter;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -47,6 +48,9 @@ public class RotaController {
         List<Obstaculo> simulados = pedido.obstaculos() == null ? List.of() : pedido.obstaculos();
         if (simulados.size() > MAXIMO_SIMULADOS) {
             throw new ParametroInvalidoException("no máximo " + MAXIMO_SIMULADOS + " obstáculos simulados por pedido");
+        }
+        if (simulados.stream().anyMatch(Objects::isNull)) {
+            throw new ParametroInvalidoException("obstaculos não pode ter itens nulos");
         }
         simulados.forEach(o -> Ponto.verificar(new Ponto(o.latitude(), o.longitude()), "obstáculo"));
         return calcular(Ponto.verificar(pedido.origem(), "origem"), Ponto.verificar(pedido.destino(), "destino"),

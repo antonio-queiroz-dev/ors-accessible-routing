@@ -17,4 +17,10 @@ class PassagemTest {
         assertEquals(Passagem.CONTORNAVEL, Passagem.de("contornavel"));
         assertEquals("contornavel", Passagem.CONTORNAVEL.json());
     }
+
+    @Test
+    void aceitaAcentoEMaiuscula() {
+        assertEquals(Passagem.DIFICIL, Passagem.de(" Difícil "));
+        assertEquals(Passagem.CONTORNAVEL, Passagem.de("contornável"));
+    }
 }

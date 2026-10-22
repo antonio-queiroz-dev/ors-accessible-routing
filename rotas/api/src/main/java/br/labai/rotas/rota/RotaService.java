@@ -34,6 +34,9 @@ public class RotaService {
     /** Correções em instruções do ORS em português. */
     private static final Map<String, String> CORRECOES = Map.of("nordoeste", "noroeste");
 
+    /** Quantas vezes o desvio é refeito ao descobrir bloqueios fora da janela de busca (cada vez gasta cota). */
+    private static final int MAXIMO_RODADAS_DESVIO = 3;
+
     private final OrsClient ors;
     private final FonteObstaculos obstaculos;
     private final double confiancaMinima;
@@ -68,14 +71,14 @@ public class RotaService {
             return resposta(direta, 0, true, List.of());
         }
 
-        List<Obstaculo> proximos = obstaculosPerto(direta.coordenadas(), extras);
+        // Mutável: o desvio pode revelar bloqueios além da janela de busca, que entram aqui
+        List<Obstaculo> proximos = new ArrayList<>(obstaculosPerto(direta.coordenadas(), extras, margemBusca));
         List<Obstaculo> noCaminho = proximos.stream().filter(o -> passaPor(direta, o)).toList();
 
         // Bloqueada: sempre contorna. Se não houver desvio, devolve a direta com desvioPossivel = false
-        List<List<double[]>> bloqueados = quadrados(proximos, Passagem.BLOQUEADA);
         RotaOrs rota = direta;
         if (noCaminho.stream().anyMatch(o -> o.passagem() == Passagem.BLOQUEADA)) {
-            rota = desviar(perfil, origem, destino, bloqueados, direta);
+            rota = desviar(perfil, origem, destino, List.of(), proximos, extras, direta);
             if (rota == null) {
                 return resposta(direta, 0, false, proximos);
             }
@@ -85,9 +88,7 @@ public class RotaService {
         // para rotas curtas); senão passa por ela com aviso
         RotaOrs semDificeis = rota;
         if (proximos.stream().anyMatch(o -> o.passagem() == Passagem.DIFICIL && passaPor(semDificeis, o))) {
-            List<List<double[]>> evitar = new ArrayList<>(bloqueados);
-            evitar.addAll(quadrados(proximos, Passagem.DIFICIL));
-            RotaOrs desvio = desviar(perfil, origem, destino, evitar, direta);
+            RotaOrs desvio = desviar(perfil, origem, destino, quadrados(proximos, Passagem.DIFICIL), proximos, extras, direta);
             double limite = Math.max(desvioPiso, rota.distanciaMetros() * desvioPercentual / 100);
             if (desvio != null && desvio.distanciaMetros() - rota.distanciaMetros() <= limite) {
                 rota = desvio;
@@ -103,26 +104,44 @@ public class RotaService {
         return resposta(escolhida, evitados, true, proximos);
     }
 
-    /** Pede a rota evitando os quadrados; null se o ORS não achar ou se ela sair ou chegar longe do ponto pedido. */
-    private RotaOrs desviar(String perfil, Ponto origem, Ponto destino, List<List<double[]>> evitar, RotaOrs direta) {
-        RotaOrs desvio;
-        try {
-            desvio = ors.rota(perfil, origem.lonLat(), destino.lonLat(), evitar);
-        } catch (OrsException e) {
-            // Só "não achou caminho" significa sem desvio; cota esgotada, chave inválida etc. sobem como erro
-            if (e.getCodigo() != OrsException.ROTA_NAO_ENCONTRADA && e.getCodigo() != OrsException.PONTO_NAO_ENCONTRADO) {
-                throw e;
+    /**
+     * Pede a rota evitando todos os bloqueados conhecidos mais os quadrados extras. Se o desvio passar por um
+     * bloqueado que estava fora da janela de busca, ele entra em conhecidos e o pedido é refeito.
+     * Null se o ORS não achar, se a rota sair ou chegar longe do ponto pedido ou se não fugir dos bloqueios.
+     */
+    private RotaOrs desviar(String perfil, Ponto origem, Ponto destino, List<List<double[]>> extrasEvitar,
+                            List<Obstaculo> conhecidos, List<Obstaculo> simulados, RotaOrs direta) {
+        for (int rodada = 1; rodada <= MAXIMO_RODADAS_DESVIO; rodada++) {
+            List<List<double[]>> evitar = new ArrayList<>(quadrados(conhecidos, Passagem.BLOQUEADA));
+            evitar.addAll(extrasEvitar);
+            RotaOrs desvio;
+            try {
+                desvio = ors.rota(perfil, origem.lonLat(), destino.lonLat(), evitar);
+            } catch (OrsException e) {
+                // Só "não achou caminho" significa sem desvio; cota esgotada, chave inválida etc. sobem como erro
+                if (e.getCodigo() != OrsException.ROTA_NAO_ENCONTRADA && e.getCodigo() != OrsException.PONTO_NAO_ENCONTRADO) {
+                    throw e;
+                }
+                log.info("Sem desvio possível ({} quadrados evitados): ORS {} {}", evitar.size(), e.getCodigo(), e.getMessage());
+                return null;
             }
-            log.info("Sem desvio possível ({} quadrados evitados): ORS {} {}", evitar.size(), e.getCodigo(), e.getMessage());
-            return null;
+            // Se o trecho da chegada (ou da saída) está bloqueado, o ORS encaixa o ponto em
+            // outro caminho próximo e a rota termina em outro lugar: isso não conta como desvio
+            if (afastou(desvio, direta, origem, 0) || afastou(desvio, direta, destino, -1)) {
+                log.info("Sem desvio possível ({} quadrados evitados): o desvio sai ou chega longe do ponto pedido", evitar.size());
+                return null;
+            }
+            List<Obstaculo> novos = obstaculosPerto(desvio.coordenadas(), simulados, ladoQuadrado).stream()
+                    .filter(o -> o.passagem() == Passagem.BLOQUEADA && !conhecidos.contains(o) && passaPor(desvio, o))
+                    .toList();
+            if (novos.isEmpty()) {
+                return desvio;
+            }
+            log.info("O desvio passa por {} bloqueio(s) fora da janela de busca; refazendo", novos.size());
+            conhecidos.addAll(novos);
         }
-        // Se o trecho da chegada (ou da saída) está bloqueado, o ORS encaixa o ponto em
-        // outro caminho próximo e a rota termina em outro lugar: isso não conta como desvio
-        if (afastou(desvio, direta, origem, 0) || afastou(desvio, direta, destino, -1)) {
-            log.info("Sem desvio possível ({} quadrados evitados): o desvio sai ou chega longe do ponto pedido", evitar.size());
-            return null;
-        }
-        return desvio;
+        log.info("Sem desvio possível: depois de {} tentativas o desvio ainda passa por bloqueios", MAXIMO_RODADAS_DESVIO);
+        return null;
     }
 
     private List<List<double[]>> quadrados(List<Obstaculo> obstaculos, Passagem passagem) {
@@ -150,8 +169,8 @@ public class RotaService {
         return Geo.distanciaAteLinha(pedido.latitude(), pedido.longitude(), List.of(ponta));
     }
 
-    /** Obstáculos confiáveis dentro do retângulo da rota direta, com margem para o desvio. */
-    private List<Obstaculo> obstaculosPerto(List<double[]> linha, List<Obstaculo> extras) {
+    /** Obstáculos confiáveis dentro do retângulo da linha, com margem (metros) para cada lado. */
+    private List<Obstaculo> obstaculosPerto(List<double[]> linha, List<Obstaculo> extras, double margemBusca) {
         double minLon = Double.MAX_VALUE, maxLon = -Double.MAX_VALUE;
         double minLat = Double.MAX_VALUE, maxLat = -Double.MAX_VALUE;
         for (double[] c : linha) {
@@ -175,10 +194,11 @@ public class RotaService {
 
     private RotaResposta resposta(RotaOrs rota, int evitados, boolean desvioPossivel, List<Obstaculo> proximos) {
         List<double[]> linha = rota.coordenadas();
-        // Obstáculos difíceis ou contornáveis que ficaram no caminho, com a posição (metros desde o início da rota)
+        // Obstáculos que ficaram no caminho, com a posição (metros desde o início da rota). Bloqueados só
+        // entram sem desvio possível: com desvio, um quadrado contornado ainda pode cair no raio de passaPor
         Map<Obstaculo, Double> avisos = new LinkedHashMap<>();
         proximos.stream()
-                .filter(o -> o.passagem() != Passagem.BLOQUEADA && passaPor(rota, o))
+                .filter(o -> (o.passagem() != Passagem.BLOQUEADA || !desvioPossivel) && passaPor(rota, o))
                 .sorted(Comparator.comparingDouble(o -> Geo.posicaoNaLinha(o.latitude(), o.longitude(), linha)))
                 .forEach(o -> avisos.put(o, Geo.posicaoNaLinha(o.latitude(), o.longitude(), linha)));
 
@@ -208,7 +228,11 @@ public class RotaService {
     private static String aviso(Obstaculo o, double metros) {
         long arredondado = Math.round(metros / 5) * 5;
         String onde = arredondado < 5 ? "logo à frente" : "em cerca de " + arredondado + " metros";
-        String como = o.passagem() == Passagem.CONTORNAVEL ? "Dá para contornar." : "Passagem difícil, sem desvio próximo.";
+        String como = switch (o.passagem()) {
+            case CONTORNAVEL -> "Dá para contornar.";
+            case DIFICIL -> "Passagem difícil, sem desvio próximo.";
+            case BLOQUEADA -> "Passagem bloqueada, sem desvio possível.";
+        };
         return "Atenção: " + o.tipo() + " " + onde + ". " + como;
     }
 

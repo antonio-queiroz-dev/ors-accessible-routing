@@ -116,11 +116,15 @@
   });
   // Busca os obstáculos da parte do mapa que está na tela (a área atendida pode ser o mundo todo)
   const camadaCamera = L.layerGroup().addTo(mapa);
+  let buscaObstaculos = 0;
   function carregarObstaculos() {
+    const numero = ++buscaObstaculos;
     if (mapa.getZoom() < 14) { camadaCamera.clearLayers(); return; }
     const b = mapa.getBounds();
     const bbox = [b.getWest(), b.getSouth(), b.getEast(), b.getNorth()].map((n) => n.toFixed(6)).join(',');
-    fetch(`api/obstaculos?bbox=${bbox}`).then((r) => r.ok ? r.json() : []).then((lista) => {
+    // Em erro (ex.: câmera fora do ar) mantém o que já estava no mapa em vez de apagar
+    fetch(`api/obstaculos?bbox=${bbox}`).then((r) => r.ok ? r.json() : null).then((lista) => {
+      if (!lista || numero !== buscaObstaculos) return; // resposta de uma posição antiga do mapa
       camadaCamera.clearLayers();
       lista.forEach((o) => marcador(o.latitude, o.longitude, CORES[o.passagem], '#555')
         .bindTooltip(`${escapar(o.tipo)} (${NOMES[o.passagem]}), da câmera`).addTo(camadaCamera));
@@ -138,6 +142,7 @@
     if (!estado.origem || estado.destino) {
       estado.origem = [lat, lng];
       estado.destino = null;
+      pedidoAtual++; // descarta a resposta da rota anterior, se ainda estiver chegando
       camadaRota.clearLayers();
       $('resultado').innerHTML = '';
     } else {
@@ -238,6 +243,7 @@
   });
   $('limparRota').addEventListener('click', () => {
     estado.origem = estado.destino = null;
+    pedidoAtual++;
     camadaRota.clearLayers();
     $('resultado').innerHTML = '';
     desenharPontas();

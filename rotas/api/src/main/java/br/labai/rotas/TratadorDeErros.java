@@ -48,7 +48,7 @@ public class TratadorDeErros {
         }
         if (e.getCodigo() == OrsException.LIMITE_EXCEDIDO) {
             return ResponseEntity.badRequest().body(Map.of("erro",
-                    "Origem e destino muito distantes: o limite é 100 km."));
+                    "Origem e destino muito distantes, ou pedido grande demais para o motor de rotas."));
         }
         if (e.getCodigo() == OrsException.ROTA_NAO_ENCONTRADA) {
             return ResponseEntity.unprocessableEntity().body(Map.of("erro",
@@ -57,7 +57,7 @@ public class TratadorDeErros {
         if (e.getCodigo() == OrsException.COTA_ESGOTADA) {
             log.warn("Cota da API pública do ORS esgotada");
             return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE).body(Map.of("erro",
-                    "Muitos pedidos de rota agora. Tente de novo em um minuto."));
+                    "Limite de pedidos de rota atingido. Tente de novo em alguns minutos."));
         }
         if (e.getCodigo() == OrsException.CHAVE_INVALIDA) {
             log.error("ORS recusou a chave: confira ORS_API_KEY");

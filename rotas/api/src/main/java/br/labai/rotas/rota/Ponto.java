@@ -23,7 +23,9 @@ public record Ponto(double latitude, double longitude) {
         if (p == null) {
             throw new ParametroInvalidoException("campo obrigatório: " + nomeParametro);
         }
-        if (p.latitude() < -90 || p.latitude() > 90 || p.longitude() < -180 || p.longitude() > 180) {
+        // isFinite: NaN passaria pelas comparações abaixo
+        if (!Double.isFinite(p.latitude()) || !Double.isFinite(p.longitude())
+                || p.latitude() < -90 || p.latitude() > 90 || p.longitude() < -180 || p.longitude() > 180) {
             throw new ParametroInvalidoException(nomeParametro + ": latitude deve estar entre -90 e 90 e longitude entre -180 e 180");
         }
         return p;

@@ -2,6 +2,7 @@ package br.labai.rotas.obstaculo;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonValue;
+import java.text.Normalizer;
 import java.util.Locale;
 
 /** Dá para passar pela calçada onde está o obstáculo? Informado pela câmera. */
@@ -14,10 +15,17 @@ public enum Passagem {
     /** Dá para contornar ali mesmo: a rota não desvia, só avisa. */
     CONTORNAVEL;
 
-    /** Converte o texto do JSON (bloqueada, dificil ou contornavel); se não vier, assume bloqueada. */
+    /**
+     * Converte o texto do JSON (bloqueada, dificil ou contornavel, com ou sem acento); se não vier, assume
+     * bloqueada. Texto desconhecido lança IllegalArgumentException.
+     */
     @JsonCreator
     public static Passagem de(String texto) {
-        return texto == null ? BLOQUEADA : valueOf(texto.trim().toUpperCase(Locale.ROOT));
+        if (texto == null) {
+            return BLOQUEADA;
+        }
+        String semAcento = Normalizer.normalize(texto.trim(), Normalizer.Form.NFD).replaceAll("\\p{M}", "");
+        return valueOf(semAcento.toUpperCase(Locale.ROOT));
     }
 
     @JsonValue

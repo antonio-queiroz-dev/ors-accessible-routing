@@ -32,6 +32,10 @@ r=$(post "$(simulado contornavel)")
 confere "POST contornavel não desvia" "$r" '"obstaculosEvitados":0'
 confere "POST contornavel avisa" "$r" 'Dá para contornar.'
 
+confere "POST passagem com acento" "$(post "$(simulado 'dif\u00edcil')")" '"obstaculosEvitados":1'
+confere "origem NaN" "$(curl -s "$B/api/rota?origem=NaN,NaN&destino=-12.9732,-38.5119")" 'latitude deve estar entre'
+confere "obstáculo simulado nulo" "$(post "{\"origem\":$O,\"destino\":$D,\"obstaculos\":[null]}")" 'itens nulos'
+
 confere "perfil inválido" "$(curl -s "$B/api/rota?origem=-12.9737,-38.5094&destino=-12.9732,-38.5119&perfil=driving-car")" 'perfil deve ser um destes'
 confere "origem malformada" "$(curl -s "$B/api/rota?origem=abc&destino=-12.9732,-38.5119")" 'origem deve estar no formato lat,lon'
 confere "destino faltando (GET)" "$(curl -s "$B/api/rota?origem=-12.9737,-38.5094")" 'parâmetro obrigatório: destino'
