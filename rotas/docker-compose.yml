@@ -5,7 +5,7 @@ services:
     ports:
       - "${API_PORTA:-8080}:8080"
     environment:
-      ORS_URL: ${ORS_URL:-https://api.openrouteservice.org}
+      ORS_URL: ${ORS_URL:-https://api.heigit.org/openrouteservice}
       ORS_API_KEY: ${ORS_API_KEY:-}
       ORS_LOCAL_URL: ${ORS_LOCAL_URL:-}
       ORS_LOCAL_BBOX: ${ORS_LOCAL_BBOX:--38.6995,-13.0174,-38.3034,-12.7336}

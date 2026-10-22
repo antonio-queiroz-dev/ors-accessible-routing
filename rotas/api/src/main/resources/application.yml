@@ -2,8 +2,9 @@ server:
   port: 8080
 
 ors:
-  # API pública por padrão; para um ORS próprio, apontar para ele (ex.: http://localhost:8082/ors)
-  url: ${ORS_URL:https://api.openrouteservice.org}
+  # API pública da HeiGIT. O endereço antigo (api.openrouteservice.org) tem só 10% da cota desde 27/08/2026
+  # e será desligado entre 2 e 6/11/2026
+  url: ${ORS_URL:https://api.heigit.org/openrouteservice}
   # Obrigatória na API pública. Só no servidor, nunca no front nem no repositório
   chave: ${ORS_API_KEY:}
   # ORS próprio (ex.: http://ors:8082/ors), com o mapa de uma cidade. Vazio desliga. Dentro da cobertura dele
