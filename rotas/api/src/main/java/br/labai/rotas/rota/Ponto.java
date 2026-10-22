@@ -15,10 +15,18 @@ public record Ponto(double latitude, double longitude) {
         } catch (NumberFormatException e) {
             throw new ParametroInvalidoException(nomeParametro + " deve ter números com ponto (ex.: -12.9737,-38.5094)");
         }
-        if (lat < -90 || lat > 90 || lon < -180 || lon > 180) {
+        return verificar(new Ponto(lat, lon), nomeParametro);
+    }
+
+    /** Para pontos que chegam no corpo JSON do POST. */
+    static Ponto verificar(Ponto p, String nomeParametro) {
+        if (p == null) {
+            throw new ParametroInvalidoException("campo obrigatório: " + nomeParametro);
+        }
+        if (p.latitude() < -90 || p.latitude() > 90 || p.longitude() < -180 || p.longitude() > 180) {
             throw new ParametroInvalidoException(nomeParametro + ": latitude deve estar entre -90 e 90 e longitude entre -180 e 180");
         }
-        return new Ponto(lat, lon);
+        return p;
     }
 
     /** Formato do ORS e do GeoJSON: [longitude, latitude]. */

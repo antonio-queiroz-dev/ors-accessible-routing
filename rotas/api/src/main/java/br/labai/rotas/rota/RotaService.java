@@ -60,13 +60,15 @@ public class RotaService {
         this.desvioPiso = desvioPiso;
     }
 
-    public RotaResposta calcular(Ponto origem, Ponto destino, String perfil, boolean considerarObstaculos) {
+    /** @param extras obstáculos simulados (página de teste), somados aos da câmera; nada é guardado */
+    public RotaResposta calcular(Ponto origem, Ponto destino, String perfil, boolean considerarObstaculos,
+                                 List<Obstaculo> extras) {
         RotaOrs direta = ors.rota(perfil, origem.lonLat(), destino.lonLat(), List.of());
         if (!considerarObstaculos) {
             return resposta(direta, 0, true, List.of());
         }
 
-        List<Obstaculo> proximos = obstaculosPerto(direta.coordenadas());
+        List<Obstaculo> proximos = obstaculosPerto(direta.coordenadas(), extras);
         List<Obstaculo> noCaminho = proximos.stream().filter(o -> passaPor(direta, o)).toList();
 
         // Bloqueada: sempre contorna. Se não houver desvio, devolve a direta com desvioPossivel = false
@@ -149,7 +151,7 @@ public class RotaService {
     }
 
     /** Obstáculos confiáveis dentro do retângulo da rota direta, com margem para o desvio. */
-    private List<Obstaculo> obstaculosPerto(List<double[]> linha) {
+    private List<Obstaculo> obstaculosPerto(List<double[]> linha, List<Obstaculo> extras) {
         double minLon = Double.MAX_VALUE, maxLon = -Double.MAX_VALUE;
         double minLat = Double.MAX_VALUE, maxLat = -Double.MAX_VALUE;
         for (double[] c : linha) {
@@ -160,8 +162,13 @@ public class RotaService {
         }
         double dLat = margemBusca / Geo.METROS_POR_GRAU_LAT;
         double dLon = margemBusca / Geo.metrosPorGrauLon((minLat + maxLat) / 2);
+        double oeste = minLon - dLon, sul = minLat - dLat, leste = maxLon + dLon, norte = maxLat + dLat;
+        List<Obstaculo> todos = new ArrayList<>(obstaculos.dentro(oeste, sul, leste, norte));
+        extras.stream()
+                .filter(o -> o.latitude() >= sul && o.latitude() <= norte && o.longitude() >= oeste && o.longitude() <= leste)
+                .forEach(todos::add);
         // Confiança é opcional: se a câmera não mandar, o obstáculo vale
-        return obstaculos.dentro(minLon - dLon, minLat - dLat, maxLon + dLon, maxLat + dLat).stream()
+        return todos.stream()
                 .filter(o -> o.confianca() == null || o.confianca() >= confiancaMinima)
                 .toList();
     }

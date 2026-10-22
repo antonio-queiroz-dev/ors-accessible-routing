@@ -1,0 +1,247 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Teste de rotas acessíveis</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
+<style>
+  :root {
+    --fundo: #f7f7f5; --painel: #ffffff; --texto: #1f2328; --suave: #5b636b; --borda: #d9dcdf;
+    --bloqueada: #d62828; --dificil: #f77f00; --contornavel: #d4a017;
+    --com-desvio: #1d4ed8; --sem-desvio: #6b7280; --aviso-fundo: #fff4e0;
+  }
+  * { box-sizing: border-box; }
+  html, body { height: 100%; margin: 0; }
+  body { font: 15px/1.45 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; color: var(--texto);
+         background: var(--fundo); display: flex; }
+  #mapa { flex: 1; min-height: 100%; }
+  aside { width: 360px; max-width: 100%; background: var(--painel); border-left: 1px solid var(--borda);
+          overflow-y: auto; padding: 16px; display: flex; flex-direction: column; gap: 14px; }
+  h1 { font-size: 18px; margin: 0; }
+  .dica { color: var(--suave); margin: 0; font-size: 14px; }
+  fieldset { border: 1px solid var(--borda); border-radius: 8px; padding: 8px 12px 10px; margin: 0; }
+  legend { font-weight: 600; font-size: 13px; padding: 0 4px; }
+  label { display: inline-flex; align-items: center; gap: 6px; margin: 2px 12px 2px 0; cursor: pointer; }
+  .cor { width: 12px; height: 12px; border-radius: 50%; display: inline-block; }
+  .botoes { display: flex; gap: 8px; flex-wrap: wrap; }
+  button { font: inherit; padding: 6px 12px; border: 1px solid var(--borda); background: #fff; border-radius: 6px; cursor: pointer; }
+  button:hover { background: #f0f1f2; }
+  #resultado:empty { display: none; }
+  .resumo { display: grid; grid-template-columns: auto 1fr; gap: 2px 12px; margin: 0 0 8px; }
+  .resumo dt { color: var(--suave); }
+  .resumo dd { margin: 0; font-variant-numeric: tabular-nums; }
+  .linha { display: inline-block; width: 22px; height: 0; border-top: 4px solid var(--com-desvio); vertical-align: middle; margin-right: 6px; }
+  .linha.sem { border-top: 3px dashed var(--sem-desvio); }
+  ol { margin: 0; padding-left: 22px; }
+  li { margin: 2px 0; }
+  li.aviso { background: var(--aviso-fundo); border-radius: 4px; padding: 2px 6px; list-style-position: inside; margin-left: -22px; }
+  .erro { background: #fde8e8; color: #8a1c1c; border-radius: 6px; padding: 8px 10px; }
+  .alerta { background: #fde8e8; color: #8a1c1c; border-radius: 6px; padding: 8px 10px; font-weight: 600; }
+  @media (max-width: 720px) {
+    body { flex-direction: column; }
+    #mapa { min-height: 55vh; }
+    aside { width: 100%; border-left: 0; border-top: 1px solid var(--borda); }
+  }
+</style>
+</head>
+<body>
+<div id="mapa" role="application" aria-label="Mapa: clique para marcar origem, destino ou obstáculos"></div>
+<aside>
+  <div>
+    <h1>Teste de rotas acessíveis</h1>
+    <p class="dica" id="instrucaoClique">Clique no mapa para marcar a origem.</p>
+  </div>
+
+  <fieldset>
+    <legend>Clique no mapa marca</legend>
+    <label><input type="radio" name="modo" value="rota" checked> origem e destino</label>
+    <label><input type="radio" name="modo" value="obstaculo"> obstáculo simulado</label>
+  </fieldset>
+
+  <fieldset>
+    <legend>Nível do obstáculo simulado</legend>
+    <label><input type="radio" name="passagem" value="bloqueada" checked><span class="cor" style="background:var(--bloqueada)"></span>bloqueada</label>
+    <label><input type="radio" name="passagem" value="dificil"><span class="cor" style="background:var(--dificil)"></span>difícil</label>
+    <label><input type="radio" name="passagem" value="contornavel"><span class="cor" style="background:var(--contornavel)"></span>contornável</label>
+  </fieldset>
+
+  <fieldset>
+    <legend>Perfil</legend>
+    <label><input type="radio" name="perfil" value="wheelchair" checked> cadeira de rodas</label>
+    <label><input type="radio" name="perfil" value="foot-walking"> a pé</label>
+  </fieldset>
+
+  <div class="botoes">
+    <button type="button" id="limparObstaculos">Limpar obstáculos simulados</button>
+    <button type="button" id="limparRota">Limpar rota</button>
+  </div>
+  <p class="dica">Clique num obstáculo simulado para removê-lo. Os de borda cinza vêm da câmera (ou são os de teste). Nada é guardado.</p>
+
+  <div id="resultado" aria-live="polite"></div>
+</aside>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+<script>
+  // A página é servida pela própria API, então os caminhos são relativos
+  const CORES = { bloqueada: '#d62828', dificil: '#f77f00', contornavel: '#d4a017' };
+  const NOMES = { bloqueada: 'bloqueada', dificil: 'difícil', contornavel: 'contornável' };
+
+  const mapa = L.map('mapa').setView([-12.9735, -38.5105], 17);
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    maxZoom: 19, attribution: '&copy; colaboradores do OpenStreetMap'
+  }).addTo(mapa);
+
+  const estado = { origem: null, destino: null, simulados: [] };
+  const camadaRota = L.layerGroup().addTo(mapa);
+  const camadaPontas = L.layerGroup().addTo(mapa);
+  const $ = (id) => document.getElementById(id);
+  const valor = (nome) => document.querySelector(`input[name="${nome}"]:checked`).value;
+
+  function escapar(texto) {
+    return String(texto).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+  }
+
+  function marcador(lat, lon, cor, borda) {
+    return L.circleMarker([lat, lon], { radius: 8, color: borda, weight: 3, fillColor: cor, fillOpacity: 0.9 });
+  }
+
+  // Área atendida e obstáculos conhecidos (câmera ou teste)
+  fetch('api/area').then((r) => r.json()).then((area) => {
+    if (!area.bbox) return;
+    const [minLon, minLat, maxLon, maxLat] = area.bbox;
+    const limites = [[minLat, minLon], [maxLat, maxLon]];
+    L.rectangle(limites, { color: '#1d4ed8', weight: 1, fill: false, dashArray: '6 6', interactive: false }).addTo(mapa);
+    mapa.fitBounds(limites);
+  });
+  // Busca os obstáculos da parte do mapa que está na tela (a área atendida pode ser o mundo todo)
+  const camadaCamera = L.layerGroup().addTo(mapa);
+  function carregarObstaculos() {
+    if (mapa.getZoom() < 14) { camadaCamera.clearLayers(); return; }
+    const b = mapa.getBounds();
+    const bbox = [b.getWest(), b.getSouth(), b.getEast(), b.getNorth()].map((n) => n.toFixed(6)).join(',');
+    fetch(`api/obstaculos?bbox=${bbox}`).then((r) => r.ok ? r.json() : []).then((lista) => {
+      camadaCamera.clearLayers();
+      lista.forEach((o) => marcador(o.latitude, o.longitude, CORES[o.passagem], '#555')
+        .bindTooltip(`${escapar(o.tipo)} (${NOMES[o.passagem]}), da câmera`).addTo(camadaCamera));
+    });
+  }
+  mapa.on('moveend', carregarObstaculos);
+  carregarObstaculos();
+
+  mapa.on('click', (e) => {
+    const { lat, lng } = e.latlng;
+    if (valor('modo') === 'obstaculo') {
+      adicionarSimulado(lat, lng, valor('passagem'));
+      return;
+    }
+    if (!estado.origem || estado.destino) {
+      estado.origem = [lat, lng];
+      estado.destino = null;
+      camadaRota.clearLayers();
+      $('resultado').innerHTML = '';
+    } else {
+      estado.destino = [lat, lng];
+    }
+    desenharPontas();
+    calcular();
+  });
+
+  function adicionarSimulado(lat, lon, passagem) {
+    const o = { latitude: lat, longitude: lon, passagem, tipo: 'obstáculo simulado' };
+    o.marcador = marcador(lat, lon, CORES[passagem], '#fff')
+      .bindTooltip(`Simulado (${NOMES[passagem]}). Clique para remover.`)
+      .on('click', (ev) => {
+        L.DomEvent.stopPropagation(ev);
+        mapa.removeLayer(o.marcador);
+        estado.simulados = estado.simulados.filter((x) => x !== o);
+        calcular();
+      })
+      .addTo(mapa);
+    estado.simulados.push(o);
+    calcular();
+  }
+
+  function desenharPontas() {
+    camadaPontas.clearLayers();
+    if (estado.origem) L.marker(estado.origem, { title: 'Origem' }).bindTooltip('Origem').addTo(camadaPontas);
+    if (estado.destino) L.marker(estado.destino, { title: 'Destino' }).bindTooltip('Destino').addTo(camadaPontas);
+    $('instrucaoClique').textContent = !estado.origem ? 'Clique no mapa para marcar a origem.'
+      : !estado.destino ? 'Agora clique para marcar o destino.'
+      : 'Um novo clique começa outra rota.';
+  }
+
+  async function pedir(considerarObstaculos) {
+    const corpo = {
+      origem: { latitude: estado.origem[0], longitude: estado.origem[1] },
+      destino: { latitude: estado.destino[0], longitude: estado.destino[1] },
+      perfil: valor('perfil'),
+      considerarObstaculos,
+      obstaculos: estado.simulados.map(({ latitude, longitude, passagem, tipo }) => ({ latitude, longitude, passagem, tipo }))
+    };
+    const r = await fetch('api/rota', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(corpo) });
+    const json = await r.json();
+    if (!r.ok) throw new Error(json.erro || `Erro ${r.status}`);
+    return json;
+  }
+
+  let pedidoAtual = 0;
+  async function calcular() {
+    if (!estado.origem || !estado.destino) return;
+    const numero = ++pedidoAtual;
+    $('resultado').innerHTML = '<p class="dica">Calculando…</p>';
+    try {
+      const [sem, com] = await Promise.all([pedir(false), pedir(true)]);
+      if (numero !== pedidoAtual) return; // chegou resposta de um clique mais novo
+      mostrar(sem, com);
+    } catch (erro) {
+      if (numero !== pedidoAtual) return;
+      camadaRota.clearLayers();
+      $('resultado').innerHTML = `<p class="erro">${escapar(erro.message)}</p>`;
+    }
+  }
+
+  function linha(rota) {
+    return rota.geometria.coordinates.map(([lon, lat]) => [lat, lon]);
+  }
+
+  function mostrar(sem, com) {
+    camadaRota.clearLayers();
+    L.polyline(linha(sem), { color: '#6b7280', weight: 4, dashArray: '8 8' }).addTo(camadaRota);
+    L.polyline(linha(com), { color: com.desvioPossivel ? '#1d4ed8' : '#d62828', weight: 6, opacity: 0.85 }).addTo(camadaRota);
+
+    const diferenca = com.distanciaMetros - sem.distanciaMetros;
+    const alerta = com.desvioPossivel ? ''
+      : '<p class="alerta">Não há rota acessível: a única rota passa por um trecho bloqueado (em vermelho).</p>';
+    const passos = com.instrucoes.map((i) => {
+      const aviso = i.texto.startsWith('Atenção');
+      const metros = i.distanciaMetros > 0 ? ` (${i.distanciaMetros} m)` : '';
+      return `<li${aviso ? ' class="aviso"' : ''}>${escapar(i.texto)}${metros}</li>`;
+    }).join('');
+
+    $('resultado').innerHTML = `
+      ${alerta}
+      <dl class="resumo">
+        <dt><span class="linha"></span>Com desvio</dt><dd>${com.distanciaMetros} m, ${Math.round(com.duracaoSegundos / 60)} min</dd>
+        <dt><span class="linha sem"></span>Sem desvio</dt><dd>${sem.distanciaMetros} m</dd>
+        <dt>Diferença</dt><dd>${diferenca >= 0 ? '+' : ''}${diferenca} m</dd>
+        <dt>Obstáculos evitados</dt><dd>${com.obstaculosEvitados}</dd>
+      </dl>
+      <ol>${passos}</ol>`;
+  }
+
+  document.querySelectorAll('input[name="perfil"]').forEach((r) => r.addEventListener('change', calcular));
+  $('limparObstaculos').addEventListener('click', () => {
+    estado.simulados.forEach((o) => mapa.removeLayer(o.marcador));
+    estado.simulados = [];
+    calcular();
+  });
+  $('limparRota').addEventListener('click', () => {
+    estado.origem = estado.destino = null;
+    camadaRota.clearLayers();
+    $('resultado').innerHTML = '';
+    desenharPontas();
+  });
+</script>
+</body>
+</html>

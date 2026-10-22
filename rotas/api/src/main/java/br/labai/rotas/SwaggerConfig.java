@@ -14,10 +14,11 @@ public class SwaggerConfig {
                 .title("API de rotas acessíveis")
                 .version("0.1.0")
                 .description("""
-                        Rotas para pessoas com deficiência visual, usando os dados de acessibilidade \
+                        Rotas para pessoas com mobilidade reduzida, usando os dados de acessibilidade \
                         do OpenStreetMap e desviando dos obstáculos detectados pela câmera.
 
                         Exemplo (Pelourinho, Salvador): origem `-12.9737,-38.5094`, destino `-12.9732,-38.5119`. \
-                        Compare `considerarObstaculos=true` e `false` para ver o desvio."""));
+                        Compare `considerarObstaculos=true` e `false` para ver o desvio. \
+                        Página de teste com mapa em `/`."""));
     }
 }

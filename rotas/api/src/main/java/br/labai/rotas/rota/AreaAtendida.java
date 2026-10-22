@@ -16,7 +16,7 @@ public class AreaAtendida {
     }
 
     /** minLon,minLat,maxLon,maxLat, como no GeoJSON e no CIDADE_BBOX. */
-    static double[] ler(String texto) {
+    public static double[] ler(String texto) {
         String[] partes = texto.split(",");
         if (partes.length != 4) {
             throw new IllegalArgumentException("AREA_BBOX deve ser minLon,minLat,maxLon,maxLat: " + texto);
@@ -29,6 +29,15 @@ public class AreaAtendida {
             throw new IllegalArgumentException("AREA_BBOX com mínimo maior que máximo: " + texto);
         }
         return b;
+    }
+
+    public String nome() {
+        return nome;
+    }
+
+    /** minLon,minLat,maxLon,maxLat, ou null se a checagem estiver desligada. */
+    public double[] bbox() {
+        return bbox == null ? null : bbox.clone();
     }
 
     void validar(Ponto p, String nomeParametro) {

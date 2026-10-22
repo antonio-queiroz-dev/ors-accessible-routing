@@ -18,9 +18,9 @@ public class CorsConfig implements WebMvcConfigurer {
 
     @Override
     public void addCorsMappings(CorsRegistry registro) {
-        // A API só tem GET; padrões aceitam "*" e curingas como https://*.exemplo.com
+        // POST só no /api/rota (obstáculos simulados); padrões aceitam "*" e curingas como https://*.exemplo.com
         String[] padroes = origens.stream().map(String::trim).filter(o -> !o.isEmpty()).toArray(String[]::new);
-        registro.addMapping("/api/**").allowedOriginPatterns(padroes).allowedMethods("GET");
+        registro.addMapping("/api/**").allowedOriginPatterns(padroes).allowedMethods("GET", "POST");
         registro.addMapping("/health").allowedOriginPatterns(padroes).allowedMethods("GET");
     }
 }
