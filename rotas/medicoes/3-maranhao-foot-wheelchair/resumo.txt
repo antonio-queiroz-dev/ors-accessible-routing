@@ -1,0 +1,16 @@
+cenario=3-maranhao-foot-wheelchair
+pbf=maranhao.osm.pbf foot-walking=true wheelchair=true xms=256m xmx=3g
+tempo_ate_pronto_s=194
+ram_pico_importacao_mib=1983
+ram_parado_mib=1529
+leituras_docker_stats=112
+disco:
+  184.2M	/home/ors/graphs
+  636.8M	/home/ors/elevation_cache
+  91.1M	/home/ors/graphs/foot-walking
+  93.1M	/home/ors/graphs/wheelchair
+  grafo na RAM: [1] 87.03 MB
+  grafo na RAM: [2] 89.03 MB
+rotas de teste (testes/rota-sao-luis.json):
+  foot-walking: HTTP 200 em 0.538008s, "summary":{"distance":1126.0,"duration":810.7}
+  wheelchair: HTTP 200 em 0.025706s, "summary":{"distance":1153.0,"duration":887.0}

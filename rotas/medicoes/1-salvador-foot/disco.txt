@@ -1,0 +1,3 @@
+24.1M	/home/ors/graphs
+83.1M	/home/ors/elevation_cache
+24.1M	/home/ors/graphs/foot-walking

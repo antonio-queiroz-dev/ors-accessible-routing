@@ -1,0 +1,16 @@
+cenario=custom-model-2
+pbf=salvador.osm.pbf foot-walking=true wheelchair=true xms=256m xmx=2g
+tempo_ate_pronto_s=28
+ram_pico_importacao_mib=917
+ram_parado_mib=604
+leituras_docker_stats=29
+disco:
+  49.2M	/home/ors/graphs
+  83.1M	/home/ors/elevation_cache
+  24.1M	/home/ors/graphs/foot-walking
+  25.1M	/home/ors/graphs/wheelchair
+  grafo na RAM: [1] 23.03 MB
+  grafo na RAM: [2] 24.03 MB
+rotas de teste (testes/rota-pelourinho.json):
+  foot-walking: HTTP 200 em 0.420776s, "summary":{"distance":542.1,"duration":390.3}
+  wheelchair: HTTP 200 em 0.019266s, "summary":{"distance":571.3,"duration":411.3}

@@ -1,0 +1,4 @@
+49.2M	/home/ors/graphs
+83.1M	/home/ors/elevation_cache
+24.1M	/home/ors/graphs/foot-walking
+25.1M	/home/ors/graphs/wheelchair

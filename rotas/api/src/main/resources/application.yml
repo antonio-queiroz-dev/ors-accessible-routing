@@ -1,0 +1,47 @@
+server:
+  port: 8080
+
+ors:
+  # Dentro do Docker o ORS é acessado pelo nome do serviço, na rede interna
+  url: ${ORS_URL:http://localhost:8082/ors}
+
+spring:
+  jackson:
+    deserialization:
+      # Mantém o fuso que veio no JSON (ex.: -03:00) em vez de converter para UTC
+      adjust-dates-to-context-time-zone: false
+  datasource:
+    # H2 em arquivo: os obstáculos sobrevivem a um restart do container
+    url: jdbc:h2:file:${DB_ARQUIVO:./dados-api/rotas}
+    username: ${DB_USUARIO:sa}
+    password: ${DB_SENHA:}
+  jpa:
+    hibernate:
+      ddl-auto: update
+    open-in-view: false
+    properties:
+      # Guarda e devolve as datas no fuso do container (TZ), em vez de UTC
+      hibernate.timezone.default_storage: NORMALIZE
+
+rota:
+  perfis: foot-walking,wheelchair
+  # Obstáculos abaixo disso são ignorados no cálculo da rota
+  confianca-minima: ${ROTA_CONFIANCA_MINIMA:0.6}
+  # Cada obstáculo vira um quadrado com esse lado, enviado ao ORS em avoid_polygons
+  lado-quadrado-metros: ${ROTA_LADO_QUADRADO_METROS:12}
+  # Busca obstáculos até essa distância além do retângulo da rota direta
+  margem-busca-metros: 500
+  # Quanto o início ou o fim do desvio pode se afastar a mais do ponto pedido
+  tolerancia-ponta-metros: 10
+  # Passagem difícil: só desvia se o desvio aumentar a rota em até esse percentual...
+  desvio-percentual: ${ROTA_DESVIO_PERCENTUAL:30}
+  # ...ou em até esses metros, o que for maior (para rotas curtas)
+  desvio-piso-metros: ${ROTA_DESVIO_PISO_METROS:100}
+
+obstaculos:
+  # Carrega obstaculos-teste.json se o banco estiver vazio
+  teste: ${OBSTACULOS_TESTE:false}
+
+springdoc:
+  swagger-ui:
+    path: /swagger-ui.html
