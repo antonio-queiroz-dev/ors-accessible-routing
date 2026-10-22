@@ -1,7 +1,5 @@
 package br.labai.rotas.ors;
 
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -10,6 +8,8 @@ import org.springframework.http.MediaType;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestClientResponseException;
 import org.springframework.web.client.RestClient;
+import tools.jackson.databind.JsonNode;
+import tools.jackson.databind.ObjectMapper;
 
 /** Chama o endpoint de direções do ORS e devolve só o que a API usa. */
 @Component
@@ -61,7 +61,7 @@ public class OrsClient {
         }
         try {
             JsonNode erro = json.readTree(e.getResponseBodyAsString()).path("error");
-            return new OrsException(erro.path("code").asInt(), erro.path("message").asText(e.getMessage()));
+            return new OrsException(erro.path("code").asInt(), erro.path("message").asString(e.getMessage()));
         } catch (Exception ignorada) {
             return new OrsException(0, e.getMessage());
         }
@@ -79,7 +79,7 @@ public class OrsClient {
         List<RotaOrs.Passo> passos = new ArrayList<>();
         for (JsonNode segmento : rota.path("properties").path("segments")) {
             for (JsonNode passo : segmento.path("steps")) {
-                passos.add(new RotaOrs.Passo(passo.path("instruction").asText(), passo.path("distance").asDouble(),
+                passos.add(new RotaOrs.Passo(passo.path("instruction").asString(), passo.path("distance").asDouble(),
                         passo.path("way_points").path(0).asInt()));
             }
         }
