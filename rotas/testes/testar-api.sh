@@ -24,6 +24,11 @@ confere "obstaculos bbox inválido" "$(curl -s "$B/api/obstaculos?bbox=abc")" 'b
 confere "GET a pé sem obstáculos" "$(curl -s -m 40 "$B/api/rota?origem=-12.9737,-38.5094&destino=-12.9732,-38.5119&perfil=foot-walking&considerarObstaculos=false")" '"obstaculosEvitados":0,"desvioPossivel":true'
 confere "GET a pé desvia dos fixos" "$(curl -s -m 40 "$B/api/rota?origem=-12.9737,-38.5094&destino=-12.9732,-38.5119&perfil=foot-walking")" '"obstaculosEvitados":3'
 confere "GET cadeira (padrão)" "$(curl -s -m 40 "$B/api/rota?origem=-12.9737,-38.5094&destino=-12.9732,-38.5119")" '"geometria":{"type":"LineString"'
+r=$(curl -s -m 40 "$B/api/rota?origem=-12.9737,-38.5094&destino=-12.9732,-38.5119&incluirRotaSemDesvio=true")
+confere "rotaSemDesvio quando pedida" "$r" '"rotaSemDesvio":{"distanciaMetros"'
+if grep -q rotaSemDesvio <<< "$(curl -s -m 40 "$B/api/rota?origem=-12.9737,-38.5094&destino=-12.9732,-38.5119")"; then
+    confere "sem rotaSemDesvio por padrão" "veio rotaSemDesvio" "nada"
+else ok=$((ok+1)); echo "ok    sem rotaSemDesvio por padrão"; fi
 confere "instruções em português" "$(curl -s -m 40 "$B/api/rota?origem=-12.9737,-38.5094&destino=-12.9732,-38.5119")" 'Siga'
 
 confere "POST bloqueada desvia" "$(post "$(simulado bloqueada)")" '"obstaculosEvitados":1,"desvioPossivel":true'

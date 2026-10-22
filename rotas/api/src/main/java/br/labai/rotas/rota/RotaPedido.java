@@ -6,13 +6,17 @@ import java.util.List;
 
 /** Corpo do POST /api/rota: igual ao GET, mais obstáculos simulados que não são guardados. */
 public record RotaPedido(
+        @Schema(requiredMode = Schema.RequiredMode.REQUIRED)
         Ponto origem,
+        @Schema(requiredMode = Schema.RequiredMode.REQUIRED)
         Ponto destino,
-        @Schema(description = "wheelchair (padrão) ou foot-walking")
+        @Schema(description = "wheelchair (padrão) ou foot-walking", example = "wheelchair")
         String perfil,
-        @Schema(description = "false para ver a rota sem desviar de nada (comparação); padrão true")
+        @Schema(description = "false para ver a rota sem desviar de nada (comparação); padrão true", example = "true")
         Boolean considerarObstaculos,
-        @Schema(description = "Obstáculos simulados, somados aos da câmera só neste pedido")
+        @Schema(description = "true devolve também rotaSemDesvio, sem gastar chamada extra; padrão false", example = "false")
+        Boolean incluirRotaSemDesvio,
+        @Schema(description = "Obstáculos simulados (até 50), somados aos da câmera só neste pedido")
         List<Obstaculo> obstaculos
 ) {
 }

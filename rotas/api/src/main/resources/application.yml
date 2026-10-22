@@ -17,6 +17,10 @@ area:
   bbox: ${AREA_BBOX:-38.5160,-12.9830,-38.5010,-12.9640}
   nome: ${AREA_NOME:Centro Histórico de Salvador}
 
+pagina:
+  # Página de teste com mapa em "/". false esconde (ex.: na VPS fora da demo, para ninguém gastar a cota do ORS)
+  teste: ${PAGINA_TESTE:true}
+
 cors:
   # Domínios do front, separados por vírgula ("*" libera todos; trocar pelo domínio real na VPS)
   origens: ${CORS_ORIGENS:*}
@@ -37,5 +41,13 @@ rota:
   desvio-piso-metros: ${ROTA_DESVIO_PISO_METROS:100}
 
 springdoc:
+  # Sem isso o springdoc copia os erros do TratadorDeErros para todo endpoint (ex.: 400 no /health);
+  # as respostas certas estão documentadas em cada controller
+  override-with-generic-response: false
   swagger-ui:
     path: /swagger-ui.html
+    # "Try it out" já ligado e tempo de cada resposta visível, para testar sem cliques extras
+    try-it-out-enabled: true
+    display-request-duration: true
+    # Esconde a seção de schemas no fim: os campos já aparecem descritos em cada endpoint
+    default-models-expand-depth: -1

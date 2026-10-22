@@ -63,13 +63,22 @@ public class RotaService {
         this.desvioPiso = desvioPiso;
     }
 
-    /** @param extras obstáculos simulados (página de teste), somados aos da câmera; nada é guardado */
+    /**
+     * @param extras obstáculos simulados (página de teste), somados aos da câmera; nada é guardado
+     * @param incluirRotaSemDesvio devolve também a rota direta, que já é calculada de qualquer jeito
+     *                             (evita um segundo pedido só para comparar)
+     */
     public RotaResposta calcular(Ponto origem, Ponto destino, String perfil, boolean considerarObstaculos,
-                                 List<Obstaculo> extras) {
+                                 List<Obstaculo> extras, boolean incluirRotaSemDesvio) {
         RotaOrs direta = ors.rota(perfil, origem.lonLat(), destino.lonLat(), List.of());
-        if (!considerarObstaculos) {
-            return resposta(direta, 0, true, List.of());
-        }
+        RotaResposta resposta = considerarObstaculos
+                ? desviandoDosObstaculos(origem, destino, perfil, extras, direta)
+                : resposta(direta, 0, true, List.of());
+        return incluirRotaSemDesvio ? resposta.comRotaSemDesvio(RotaResposta.Resumo.de(direta)) : resposta;
+    }
+
+    private RotaResposta desviandoDosObstaculos(Ponto origem, Ponto destino, String perfil, List<Obstaculo> extras,
+                                                RotaOrs direta) {
 
         // Mutável: o desvio pode revelar bloqueios além da janela de busca, que entram aqui
         List<Obstaculo> proximos = new ArrayList<>(obstaculosPerto(direta.coordenadas(), extras, margemBusca));
@@ -222,7 +231,8 @@ public class RotaService {
                 new RotaResposta.Geometria("LineString", linha),
                 instrucoes,
                 evitados,
-                desvioPossivel);
+                desvioPossivel,
+                null);
     }
 
     private static String aviso(Obstaculo o, double metros) {

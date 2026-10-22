@@ -1,7 +1,12 @@
 package br.labai.rotas.rota;
 
+import io.swagger.v3.oas.annotations.media.Schema;
+
 /** Ponto recebido na API como "lat,lon". */
-public record Ponto(double latitude, double longitude) {
+@Schema(description = "Ponto em graus decimais")
+public record Ponto(
+        @Schema(example = "-12.9737") double latitude,
+        @Schema(example = "-38.5094") double longitude) {
 
     static Ponto ler(String texto, String nomeParametro) {
         String[] partes = texto == null ? new String[0] : texto.split(",");

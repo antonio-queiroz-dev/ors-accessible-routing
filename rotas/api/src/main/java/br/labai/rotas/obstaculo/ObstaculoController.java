@@ -1,9 +1,17 @@
 package br.labai.rotas.obstaculo;
 
+import br.labai.rotas.ExemplosApi;
+import br.labai.rotas.SwaggerConfig;
 import br.labai.rotas.rota.AreaAtendida;
 import br.labai.rotas.rota.ParametroInvalidoException;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.media.ArraySchema;
+import io.swagger.v3.oas.annotations.media.Content;
+import io.swagger.v3.oas.annotations.media.ExampleObject;
+import io.swagger.v3.oas.annotations.media.Schema;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import java.util.List;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -11,6 +19,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 /** Só leitura: repassa o que vem da câmera, para desenhar no mapa. A API não guarda obstáculos. */
 @RestController
+@Tag(name = SwaggerConfig.TAG_OBSTACULOS)
 public class ObstaculoController {
 
     private final FonteObstaculos fonte;
@@ -21,10 +30,20 @@ public class ObstaculoController {
         this.area = area;
     }
 
-    @Operation(summary = "Obstáculos conhecidos dentro da área atendida (vindos da câmera, ou os de teste)")
+    @Operation(summary = "Obstáculos dentro de um retângulo",
+            description = "Só leitura: repassa o que vem do back da câmera (ou os obstáculos de teste), para o front "
+                    + "desenhar no mapa. Registros sem latitude e longitude válidas são descartados.")
+    @ApiResponse(responseCode = "200", content = @Content(mediaType = "application/json",
+            array = @ArraySchema(schema = @Schema(implementation = Obstaculo.class)),
+            examples = @ExampleObject(value = ExemplosApi.OBSTACULOS)))
+    @ApiResponse(responseCode = "400", description = "bbox inválido", content = @Content(mediaType = "application/json",
+            examples = @ExampleObject(value = ExemplosApi.ERRO_BBOX)))
+    @ApiResponse(responseCode = "503", description = "Câmera fora do ar", content = @Content(mediaType = "application/json",
+            examples = @ExampleObject(value = ExemplosApi.ERRO_CAMERA)))
     @GetMapping("/api/obstaculos")
     public List<Obstaculo> obstaculos(
-            @Parameter(description = "minLon,minLat,maxLon,maxLat; padrão: a área atendida")
+            @Parameter(description = "`minLon,minLat,maxLon,maxLat`. Opcional quando há área atendida (usa ela)",
+                    example = "-38.516,-12.983,-38.501,-12.964")
             @RequestParam(required = false) String bbox) {
         double[] b;
         try {

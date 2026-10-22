@@ -2,10 +2,12 @@ package br.labai.rotas.obstaculo;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonValue;
+import io.swagger.v3.oas.annotations.media.Schema;
 import java.text.Normalizer;
 import java.util.Locale;
 
 /** Dá para passar pela calçada onde está o obstáculo? Informado pela câmera. */
+@Schema(description = "bloqueada: sempre desvia. dificil: desvia se o desvio for curto. contornavel: só avisa")
 public enum Passagem {
 
     /** Não passa: a rota sempre contorna. */
