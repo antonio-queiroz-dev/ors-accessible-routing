@@ -34,9 +34,12 @@ public class StatusController {
         this.area = area;
     }
 
-    @Operation(summary = "Saúde da API, do openrouteservice e do back da câmera",
-            description = "Não pede rota ao openrouteservice, para não gastar cota. `ors` traz o estado de cada motor "
-                    + "(`salvador`: mapa próprio; `publico`: API pública). `camera` diz `obstáculos de teste fixos` quando `CAMERA_URL` está vazio.")
+    @Operation(summary = "Ver se está tudo funcionando",
+            description = """
+                    **Para que serve:** diz se a API está no ar e se ela consegue falar com cada peça: \
+                    os motores de rota (`salvador` e `publico`) e a câmera. Não calcula rota, então não gasta cota.
+
+                    **Quem usa:** a equipe e quem monitora a API. `/api/status` é o mesmo endpoint.""")
     @ApiResponse(responseCode = "200", content = @Content(mediaType = "application/json",
             examples = @ExampleObject(value = ExemplosApi.HEALTH)))
     @GetMapping({"/api/status", "/health"})
@@ -50,9 +53,12 @@ public class StatusController {
         return resposta;
     }
 
-    @Operation(summary = "Área atendida",
-            description = "`bbox` em `[minLon, minLat, maxLon, maxLat]`, ou `null` quando não há limite (mundo todo). "
-                    + "Origem ou destino fora dela dão 400.")
+    @Operation(summary = "Ver a área onde a API calcula rotas",
+            description = """
+                    **Para que serve:** devolve o retângulo onde a API aceita origem e destino \
+                    (`[minLon, minLat, maxLon, maxLat]`). `null` quer dizer o mundo todo. Fora dele, a rota dá erro 400.
+
+                    **Quem usa:** o front, se quiser limitar o mapa.""")
     @GetMapping("/api/area")
     public Map<String, Object> area() {
         Map<String, Object> resposta = new LinkedHashMap<>();

@@ -30,9 +30,14 @@ public class ObstaculoController {
         this.area = area;
     }
 
-    @Operation(summary = "Obstáculos dentro de um retângulo",
-            description = "Só leitura: repassa o que vem do back da câmera (ou os obstáculos de teste), para o front "
-                    + "desenhar no mapa. Registros sem latitude e longitude válidas são descartados.")
+    @Operation(summary = "Listar os obstáculos de uma área (para mostrar no mapa)",
+            description = """
+                    **Para que serve:** devolve os obstáculos registrados pela câmera dentro de um retângulo. \
+                    Só repassa o que vem da câmera: não cria nem apaga nada. Sem câmera ligada, devolve os de teste.
+
+                    **Quem usa:** o front, se quiser desenhar os obstáculos.
+
+                    **Entra:** `bbox` (o retângulo). **Sai:** a lista de obstáculos.""")
     @ApiResponse(responseCode = "200", content = @Content(mediaType = "application/json",
             array = @ArraySchema(schema = @Schema(implementation = Obstaculo.class)),
             examples = @ExampleObject(value = ExemplosApi.OBSTACULOS)))

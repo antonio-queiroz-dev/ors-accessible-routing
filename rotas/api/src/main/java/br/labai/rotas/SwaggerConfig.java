@@ -22,46 +22,52 @@ public class SwaggerConfig {
                         .version("1.0.0")
                         .description(DESCRICAO))
                 .tags(List.of(
-                        new Tag().name(TAG_ROTAS).description("Cálculo da rota, desviando dos obstáculos"),
-                        new Tag().name(TAG_OBSTACULOS).description("Obstáculos conhecidos, para desenhar no mapa (só leitura)"),
-                        new Tag().name(TAG_STATUS).description("Saúde da API e área atendida")));
+                        new Tag().name(TAG_ROTAS).description("Calcular rotas"),
+                        new Tag().name(TAG_OBSTACULOS).description("Ver os obstáculos registrados pela câmera"),
+                        new Tag().name(TAG_STATUS).description("Ver se está tudo funcionando e qual área é atendida")));
     }
 
     private static final String DESCRICAO = """
-            Calcula rotas para pessoas com mobilidade reduzida, principalmente cadeirantes, \
-            desviando dos obstáculos que a câmera com visão computacional detectou nas calçadas.
+            Calcula rotas para cadeirantes e pessoas com mobilidade reduzida, desviando dos obstáculos \
+            que a câmera da equipe registrou nas calçadas.
 
-            **[Página de teste com mapa](/)**: clique para marcar origem, destino e obstáculos simulados.
+            **Para o front, basta um endpoint:** `GET /api/rota?origem=lat,lon&destino=lat,lon`. \
+            Ele devolve a linha da rota para desenhar no mapa e as instruções em texto.
 
-            ### Como funciona
+            **[Abrir a página de teste com mapa](/)**
 
-            1. O front pede uma rota (`GET /api/rota`).
-            2. A API pergunta ao back da câmera quais obstáculos existem perto do trajeto.
-            3. Cada obstáculo vira um quadrado de 12 m em volta do ponto (cobre o erro do GPS) e vai para o \
-            [openrouteservice](https://openrouteservice.org) como área a evitar. O perfil `wheelchair` do \
-            openrouteservice já considera inclinação, meio-fio e tipo de piso quando o OpenStreetMap tem esses dados.
-            4. A API devolve a rota em GeoJSON, com instruções em português e avisos.
+            ### Endpoints
 
-            A API não guarda nada: os obstáculos ficam no back da câmera.
+            | Endpoint | Para que serve | Quem usa |
+            |---|---|---|
+            | `GET /api/rota` | Calcular a rota | o front |
+            | `POST /api/rota` | Calcular a rota com obstáculos inventados | testes e demonstração |
+            | `GET /api/obstaculos` | Listar os obstáculos de uma área | o front, para mostrar no mapa |
+            | `GET /api/area` | Ver onde a API calcula rotas | o front, para limitar o mapa |
+            | `GET /health` | Ver se está tudo funcionando | a equipe |
 
-            ### Dois motores de rota
+            ### De onde vêm os obstáculos
+
+            Nenhum endpoint recebe dados da câmera: **é a API que busca**. A cada rota, ela consulta o \
+            endereço da câmera (configurado no servidor) e pega os obstáculos da área. Nada é gravado aqui.
+
+            Cada obstáculo tem um nível de passagem:
+
+            | Nível | O que a rota faz |
+            |---|---|
+            | `bloqueada` | Sempre desvia. Se não houver outro caminho, avisa que não existe rota acessível. |
+            | `dificil` | Desvia se o desvio for curto (até 30% ou 100 m a mais); senão passa e avisa. |
+            | `contornavel` | Não desvia, só avisa. |
+
+            ### Quem calcula a rota
 
             | Motor | Onde | Limite |
             |---|---|---|
-            | `salvador` | openrouteservice próprio, com o mapa de Salvador | sem cota: pode testar com mais carga, sem exageros |
-            | `publico` | API pública do openrouteservice, mundo todo | 2.000 rotas por dia e 40 por minuto |
+            | `salvador` | Servidor próprio com o mapa de Salvador | Sem limite: dá para testar com mais carga, sem exageros |
+            | `publico` | API pública do openrouteservice, no mundo todo | 2.000 rotas por dia e 40 por minuto |
 
-            Origem e destino dentro de Salvador usam o `salvador`; fora, o `publico`. Se o escolhido cair ou             ficar sem cota, o outro assume onde puder. O campo `motor` da resposta diz quem calculou.
-
-            ### Níveis de passagem
-
-            | `passagem` | O que a rota faz |
-            |---|---|
-            | `bloqueada` | Sempre desvia. Sem desvio possível, devolve a rota direta com `desvioPossivel: false` e um aviso no ponto do bloqueio. |
-            | `dificil` | Desvia se a rota aumentar até 30% ou até 100 m (o que for maior); senão passa e avisa. |
-            | `contornavel` | Não desvia, só avisa ("Dá para contornar."). |
-
-            Os avisos entram em `instrucoes`, logo depois do passo onde está o obstáculo, com `distanciaMetros: 0`.
+            Dentro de Salvador a API usa o `salvador`; fora, o `publico`. Se um cair, o outro assume onde puder. \
+            O campo `motor` da resposta diz quem calculou.
 
             ### Erros
 
@@ -69,11 +75,10 @@ public class SwaggerConfig {
 
             | Status | Quando |
             |---|---|
-            | 400 | Coordenada malformada, fora da área atendida, perfil inválido ou JSON inválido |
-            | 422 | Não existe caminho com esse perfil (comum no `wheelchair` onde o mapa não tem dados de calçada) |
-            | 502 | O openrouteservice recusou o pedido |
-            | 503 | Câmera fora do ar, openrouteservice fora do ar ou limite de pedidos atingido |
+            | 400 | Coordenada em formato errado, fora da área atendida ou JSON inválido |
+            | 422 | Não existe caminho com esse perfil (acontece com cadeira onde o mapa não tem dados de calçada) |
+            | 503 | Câmera fora do ar, motor de rotas fora do ar ou limite de pedidos atingido |
 
-            Coordenadas sempre em graus decimais com ponto. Na URL o formato é `lat,lon`; no GeoJSON \
-            devolvido é `[longitude, latitude]`, como manda o padrão.""";
+            Coordenadas em graus decimais com ponto. Na URL o formato é `lat,lon`; na linha da rota (GeoJSON) \
+            cada ponto vem como `[longitude, latitude]`, como manda o padrão.""";
 }

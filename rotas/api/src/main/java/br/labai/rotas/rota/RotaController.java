@@ -34,9 +34,16 @@ public class RotaController {
         this.perfis = perfis;
     }
 
-    @Operation(summary = "Calcula a rota desviando dos obstáculos da câmera",
-            description = "É o endpoint que o front usa. Gasta de 1 a 3 chamadas da cota do openrouteservice: "
-                    + "uma para a rota direta e mais uma ou duas só se houver obstáculo no caminho.")
+    @Operation(summary = "Calcular uma rota (é o que o front usa)",
+            description = """
+                    **Para que serve:** dá o caminho de A até B desviando dos obstáculos que a câmera registrou.
+
+                    **Quem usa:** o front.
+
+                    **Entra:** `origem` e `destino` (`lat,lon`). Opcionais: `perfil`, `considerarObstaculos`, `incluirRotaSemDesvio`.
+
+                    **Sai:** a linha da rota para desenhar no mapa, as instruções em texto com os avisos de obstáculo, \
+                    distância, tempo, quantos obstáculos foram evitados, se existe rota acessível e qual motor calculou.""")
     @RespostasDeRota
     @GetMapping("/api/rota")
     public RotaResposta rota(
@@ -52,9 +59,14 @@ public class RotaController {
                 List.of(), incluirRotaSemDesvio);
     }
 
-    @Operation(summary = "Igual ao GET, com obstáculos simulados no corpo",
-            description = "Para testes e demonstração: os obstáculos do corpo valem só neste pedido, somados aos da câmera. "
-                    + "Nada é guardado. A página de teste usa este endpoint.")
+    @Operation(summary = "Calcular uma rota com obstáculos inventados (para testes)",
+            description = """
+                    **Para que serve:** o mesmo cálculo do GET, mas você manda obstáculos de mentira no corpo \
+                    ("finja que tem um degrau aqui"). Eles valem só neste pedido e não são gravados.
+
+                    **Quem usa:** a página de teste, ou quem quiser demonstrar o desvio sem depender da câmera.
+
+                    **Entra:** o JSON do exemplo abaixo. **Sai:** o mesmo que o GET.""")
     @io.swagger.v3.oas.annotations.parameters.RequestBody(content = @Content(mediaType = "application/json",
             examples = @ExampleObject(name = "Bloqueio no caminho da cadeira", value = ExemplosApi.PEDIDO_SIMULADO)))
     @RespostasDeRota
