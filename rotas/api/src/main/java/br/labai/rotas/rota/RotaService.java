@@ -1,7 +1,7 @@
 package br.labai.rotas.rota;
 
 import br.labai.rotas.obstaculo.Obstaculo;
-import br.labai.rotas.obstaculo.ObstaculoRepository;
+import br.labai.rotas.obstaculo.FonteObstaculos;
 import br.labai.rotas.obstaculo.Passagem;
 import br.labai.rotas.ors.OrsClient;
 import br.labai.rotas.ors.OrsException;
@@ -35,7 +35,7 @@ public class RotaService {
     private static final Map<String, String> CORRECOES = Map.of("nordoeste", "noroeste");
 
     private final OrsClient ors;
-    private final ObstaculoRepository obstaculos;
+    private final FonteObstaculos obstaculos;
     private final double confiancaMinima;
     private final double ladoQuadrado;
     private final double margemBusca;
@@ -43,7 +43,7 @@ public class RotaService {
     private final double desvioPercentual;
     private final double desvioPiso;
 
-    public RotaService(OrsClient ors, ObstaculoRepository obstaculos,
+    public RotaService(OrsClient ors, FonteObstaculos obstaculos,
                        @Value("${rota.confianca-minima}") double confiancaMinima,
                        @Value("${rota.lado-quadrado-metros}") double ladoQuadrado,
                        @Value("${rota.margem-busca-metros}") double margemBusca,
@@ -72,7 +72,7 @@ public class RotaService {
         // Bloqueada: sempre contorna. Se não houver desvio, devolve a direta com desvioPossivel = false
         List<List<double[]>> bloqueados = quadrados(proximos, Passagem.BLOQUEADA);
         RotaOrs rota = direta;
-        if (noCaminho.stream().anyMatch(o -> o.getPassagem() == Passagem.BLOQUEADA)) {
+        if (noCaminho.stream().anyMatch(o -> o.passagem() == Passagem.BLOQUEADA)) {
             rota = desviar(perfil, origem, destino, bloqueados, direta);
             if (rota == null) {
                 return resposta(direta, 0, false, proximos);
@@ -82,7 +82,7 @@ public class RotaService {
         // Difícil: contorna se o desvio aumentar a rota em até desvioPercentual (ou até desvioPiso metros,
         // para rotas curtas); senão passa por ela com aviso
         RotaOrs semDificeis = rota;
-        if (proximos.stream().anyMatch(o -> o.getPassagem() == Passagem.DIFICIL && passaPor(semDificeis, o))) {
+        if (proximos.stream().anyMatch(o -> o.passagem() == Passagem.DIFICIL && passaPor(semDificeis, o))) {
             List<List<double[]>> evitar = new ArrayList<>(bloqueados);
             evitar.addAll(quadrados(proximos, Passagem.DIFICIL));
             RotaOrs desvio = desviar(perfil, origem, destino, evitar, direta);
@@ -107,6 +107,10 @@ public class RotaService {
         try {
             desvio = ors.rota(perfil, origem.lonLat(), destino.lonLat(), evitar);
         } catch (OrsException e) {
+            // Só "não achou caminho" significa sem desvio; cota esgotada, chave inválida etc. sobem como erro
+            if (e.getCodigo() != OrsException.ROTA_NAO_ENCONTRADA && e.getCodigo() != OrsException.PONTO_NAO_ENCONTRADO) {
+                throw e;
+            }
             log.info("Sem desvio possível ({} quadrados evitados): ORS {} {}", evitar.size(), e.getCodigo(), e.getMessage());
             return null;
         }
@@ -121,8 +125,8 @@ public class RotaService {
 
     private List<List<double[]>> quadrados(List<Obstaculo> obstaculos, Passagem passagem) {
         return obstaculos.stream()
-                .filter(o -> o.getPassagem() == passagem)
-                .map(o -> Geo.quadrado(o.getLatitude(), o.getLongitude(), ladoQuadrado))
+                .filter(o -> o.passagem() == passagem)
+                .map(o -> Geo.quadrado(o.latitude(), o.longitude(), ladoQuadrado))
                 .toList();
     }
 
@@ -130,7 +134,7 @@ public class RotaService {
     private boolean passaPor(RotaOrs rota, Obstaculo o) {
         // Um ponto a até meia diagonal do centro pode cair dentro do quadrado
         double raio = ladoQuadrado / 2 * Math.sqrt(2);
-        return Geo.distanciaAteLinha(o.getLatitude(), o.getLongitude(), rota.coordenadas()) <= raio;
+        return Geo.distanciaAteLinha(o.latitude(), o.longitude(), rota.coordenadas()) <= raio;
     }
 
     /** O ponto da rota com desvio ficou mais longe do pedido do que o da rota direta, além da tolerância? */
@@ -156,8 +160,10 @@ public class RotaService {
         }
         double dLat = margemBusca / Geo.METROS_POR_GRAU_LAT;
         double dLon = margemBusca / Geo.metrosPorGrauLon((minLat + maxLat) / 2);
-        return obstaculos.findByConfiancaGreaterThanEqualAndLatitudeBetweenAndLongitudeBetween(
-                confiancaMinima, minLat - dLat, maxLat + dLat, minLon - dLon, maxLon + dLon);
+        // Confiança é opcional: se a câmera não mandar, o obstáculo vale
+        return obstaculos.dentro(minLon - dLon, minLat - dLat, maxLon + dLon, maxLat + dLat).stream()
+                .filter(o -> o.confianca() == null || o.confianca() >= confiancaMinima)
+                .toList();
     }
 
     private RotaResposta resposta(RotaOrs rota, int evitados, boolean desvioPossivel, List<Obstaculo> proximos) {
@@ -165,9 +171,9 @@ public class RotaService {
         // Obstáculos difíceis ou contornáveis que ficaram no caminho, com a posição (metros desde o início da rota)
         Map<Obstaculo, Double> avisos = new LinkedHashMap<>();
         proximos.stream()
-                .filter(o -> o.getPassagem() != Passagem.BLOQUEADA && passaPor(rota, o))
-                .sorted(Comparator.comparingDouble(o -> Geo.posicaoNaLinha(o.getLatitude(), o.getLongitude(), linha)))
-                .forEach(o -> avisos.put(o, Geo.posicaoNaLinha(o.getLatitude(), o.getLongitude(), linha)));
+                .filter(o -> o.passagem() != Passagem.BLOQUEADA && passaPor(rota, o))
+                .sorted(Comparator.comparingDouble(o -> Geo.posicaoNaLinha(o.latitude(), o.longitude(), linha)))
+                .forEach(o -> avisos.put(o, Geo.posicaoNaLinha(o.latitude(), o.longitude(), linha)));
 
         List<RotaResposta.Instrucao> instrucoes = new ArrayList<>();
         List<RotaOrs.Passo> passos = rota.passos();
@@ -195,8 +201,8 @@ public class RotaService {
     private static String aviso(Obstaculo o, double metros) {
         long arredondado = Math.round(metros / 5) * 5;
         String onde = arredondado < 5 ? "logo à frente" : "em cerca de " + arredondado + " metros";
-        String como = o.getPassagem() == Passagem.CONTORNAVEL ? "Dá para contornar." : "Passagem difícil, sem desvio próximo.";
-        return "Atenção: " + o.getTipo() + " " + onde + ". " + como;
+        String como = o.passagem() == Passagem.CONTORNAVEL ? "Dá para contornar." : "Passagem difícil, sem desvio próximo.";
+        return "Atenção: " + o.tipo() + " " + onde + ". " + como;
     }
 
     private static String corrigir(String texto) {

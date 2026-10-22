@@ -24,8 +24,8 @@ public class RotaController {
     public RotaResposta rota(
             @Parameter(description = "lat,lon", example = "-12.9737,-38.5094") @RequestParam String origem,
             @Parameter(description = "lat,lon", example = "-12.9732,-38.5119") @RequestParam String destino,
-            @Parameter(description = "foot-walking ou wheelchair", example = "foot-walking")
-            @RequestParam(defaultValue = "foot-walking") String perfil,
+            @Parameter(description = "wheelchair ou foot-walking", example = "wheelchair")
+            @RequestParam(defaultValue = "wheelchair") String perfil,
             @Parameter(description = "false para ver a rota sem desviar de nada (comparação)")
             @RequestParam(defaultValue = "true") boolean considerarObstaculos) {
         if (!perfis.contains(perfil)) {

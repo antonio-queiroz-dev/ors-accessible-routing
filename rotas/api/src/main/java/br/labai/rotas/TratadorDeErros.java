@@ -1,15 +1,13 @@
 package br.labai.rotas;
 
+import br.labai.rotas.obstaculo.CameraIndisponivelException;
 import br.labai.rotas.ors.OrsException;
 import br.labai.rotas.rota.ParametroInvalidoException;
-import java.util.LinkedHashMap;
 import java.util.Map;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.http.converter.HttpMessageNotReadableException;
-import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.MissingServletRequestParameterException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.ResponseStatus;
@@ -21,22 +19,6 @@ import org.springframework.web.client.ResourceAccessException;
 public class TratadorDeErros {
 
     private static final Logger log = LoggerFactory.getLogger(TratadorDeErros.class);
-
-    @ExceptionHandler(MethodArgumentNotValidException.class)
-    @ResponseStatus(HttpStatus.BAD_REQUEST)
-    public Map<String, Object> dadosInvalidos(MethodArgumentNotValidException e) {
-        Map<String, String> campos = new LinkedHashMap<>();
-        e.getBindingResult().getFieldErrors()
-                .forEach(erro -> campos.putIfAbsent(erro.getField(), erro.getDefaultMessage()));
-        return Map.of("erro", "Dados inválidos", "campos", campos);
-    }
-
-    @ExceptionHandler(HttpMessageNotReadableException.class)
-    @ResponseStatus(HttpStatus.BAD_REQUEST)
-    public Map<String, Object> jsonIlegivel(HttpMessageNotReadableException e) {
-        return Map.of("erro", "JSON inválido ou com campo no formato errado. Confira: texto em UTF-8, "
-                + "números com ponto (ex.: -12.97) e data no formato ISO 8601 (ex.: 2026-10-21T13:00:00-03:00).");
-    }
 
     @ExceptionHandler(ParametroInvalidoException.class)
     @ResponseStatus(HttpStatus.BAD_REQUEST)
@@ -64,6 +46,16 @@ public class TratadorDeErros {
             return ResponseEntity.unprocessableEntity().body(Map.of("erro",
                     "Não existe caminho entre a origem e o destino com esse perfil."));
         }
+        if (e.getCodigo() == OrsException.COTA_ESGOTADA) {
+            log.warn("Cota da API pública do ORS esgotada");
+            return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE).body(Map.of("erro",
+                    "Muitos pedidos de rota agora. Tente de novo em um minuto."));
+        }
+        if (e.getCodigo() == OrsException.CHAVE_INVALIDA) {
+            log.error("ORS recusou a chave: confira ORS_API_KEY");
+            return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE).body(Map.of("erro",
+                    "Motor de rotas indisponível no momento."));
+        }
         log.warn("ORS recusou o pedido: {} {}", e.getCodigo(), e.getMessage());
         return ResponseEntity.status(HttpStatus.BAD_GATEWAY).body(Map.of("erro",
                 "O motor de rotas recusou o pedido: " + e.getMessage()));
@@ -74,5 +66,12 @@ public class TratadorDeErros {
     public Map<String, Object> orsFora(ResourceAccessException e) {
         log.warn("ORS inacessível: {}", e.getMessage());
         return Map.of("erro", "Motor de rotas indisponível no momento. Tente de novo em instantes.");
+    }
+
+    @ExceptionHandler(CameraIndisponivelException.class)
+    @ResponseStatus(HttpStatus.SERVICE_UNAVAILABLE)
+    public Map<String, Object> cameraFora(CameraIndisponivelException e) {
+        // Sem a lista de obstáculos, calcular a rota poderia mandar a pessoa por um trecho bloqueado
+        return Map.of("erro", "Dados de obstáculos indisponíveis no momento. Tente de novo em instantes.");
     }
 }

@@ -1,5 +1,25 @@
 services:
+  api:
+    build: ./api
+    container_name: rotas-api
+    ports:
+      - "${API_PORTA:-8080}:8080"
+    environment:
+      ORS_URL: ${ORS_URL:-https://api.openrouteservice.org}
+      ORS_API_KEY: ${ORS_API_KEY:-}
+      CAMERA_URL: ${CAMERA_URL:-}
+      JAVA_OPTS: ${API_JAVA_OPTS:--Xmx384m}
+      TZ: ${API_FUSO:-America/Bahia}
+      ROTA_PERFIS: ${ROTA_PERFIS:-wheelchair,foot-walking}
+      ROTA_CONFIANCA_MINIMA: ${ROTA_CONFIANCA_MINIMA:-0.6}
+      ROTA_LADO_QUADRADO_METROS: ${ROTA_LADO_QUADRADO_METROS:-12}
+      ROTA_DESVIO_PERCENTUAL: ${ROTA_DESVIO_PERCENTUAL:-30}
+      ROTA_DESVIO_PISO_METROS: ${ROTA_DESVIO_PISO_METROS:-100}
+
+  # Legado: ORS próprio, só sobe com --profile ors-local (ou "up -d ors").
+  # Plano B se a API pública falhar: subir com o perfil e usar ORS_URL=http://ors:8082/ors
   ors:
+    profiles: ["ors-local"]
     image: openrouteservice/openrouteservice:${ORS_VERSAO:-v10.1.0}
     container_name: rotas-ors
     # Sem "ports": o ORS só é acessível pela rede interna, atrás da API.
@@ -19,30 +39,7 @@ services:
       - ors-elevation:/home/ors/elevation_cache
       - ors-logs:/home/ors/logs
 
-  api:
-    build: ./api
-    container_name: rotas-api
-    ports:
-      - "${API_PORTA:-8080}:8080"
-    environment:
-      ORS_URL: http://ors:8082/ors
-      JAVA_OPTS: ${API_JAVA_OPTS:--Xmx384m}
-      DB_ARQUIVO: /data/rotas
-      # Fuso usado nas datas devolvidas pela API
-      TZ: ${API_FUSO:-America/Bahia}
-      OBSTACULOS_TESTE: ${OBSTACULOS_TESTE:-false}
-      ROTA_CONFIANCA_MINIMA: ${ROTA_CONFIANCA_MINIMA:-0.6}
-      ROTA_LADO_QUADRADO_METROS: ${ROTA_LADO_QUADRADO_METROS:-12}
-      ROTA_DESVIO_PERCENTUAL: ${ROTA_DESVIO_PERCENTUAL:-30}
-      ROTA_DESVIO_PISO_METROS: ${ROTA_DESVIO_PISO_METROS:-100}
-    volumes:
-      - api-dados:/data
-    depends_on:
-      ors:
-        condition: service_healthy
-
 volumes:
   ors-graphs:
   ors-elevation:
   ors-logs:
-  api-dados:

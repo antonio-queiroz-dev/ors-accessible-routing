@@ -1,5 +1,6 @@
 package br.labai.rotas.obstaculo;
 
+import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonValue;
 import java.util.Locale;
 
@@ -13,10 +14,8 @@ public enum Passagem {
     /** Dá para contornar ali mesmo: a rota não desvia, só avisa. */
     CONTORNAVEL;
 
-    /** Valor no JSON: bloqueada, dificil ou contornavel. */
-    public static final String VALORES = "bloqueada|dificil|contornavel";
-
-    /** Converte o texto do JSON; se não vier, assume bloqueada. */
+    /** Converte o texto do JSON (bloqueada, dificil ou contornavel); se não vier, assume bloqueada. */
+    @JsonCreator
     public static Passagem de(String texto) {
         return texto == null ? BLOQUEADA : valueOf(texto.trim().toUpperCase(Locale.ROOT));
     }

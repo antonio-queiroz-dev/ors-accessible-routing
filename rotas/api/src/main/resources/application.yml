@@ -2,30 +2,19 @@ server:
   port: 8080
 
 ors:
-  # Dentro do Docker o ORS é acessado pelo nome do serviço, na rede interna
-  url: ${ORS_URL:http://localhost:8082/ors}
+  # API pública por padrão; para um ORS próprio, apontar para ele (ex.: http://localhost:8082/ors)
+  url: ${ORS_URL:https://api.openrouteservice.org}
+  # Obrigatória na API pública. Só no servidor, nunca no front nem no repositório
+  chave: ${ORS_API_KEY:}
 
-spring:
-  jackson:
-    deserialization:
-      # Mantém o fuso que veio no JSON (ex.: -03:00) em vez de converter para UTC
-      adjust-dates-to-context-time-zone: false
-  datasource:
-    # H2 em arquivo: os obstáculos sobrevivem a um restart do container
-    url: jdbc:h2:file:${DB_ARQUIVO:./dados-api/rotas}
-    username: ${DB_USUARIO:sa}
-    password: ${DB_SENHA:}
-  jpa:
-    hibernate:
-      ddl-auto: update
-    open-in-view: false
-    properties:
-      # Guarda e devolve as datas no fuso do container (TZ), em vez de UTC
-      hibernate.timezone.default_storage: NORMALIZE
+camera:
+  # Endereço do back da câmera que lista obstáculos; a API acrescenta ?bbox=minLon,minLat,maxLon,maxLat.
+  # Vazio: usa os obstáculos de teste fixos de obstaculos-teste.json
+  url: ${CAMERA_URL:}
 
 rota:
-  perfis: foot-walking,wheelchair
-  # Obstáculos abaixo disso são ignorados no cálculo da rota
+  perfis: ${ROTA_PERFIS:wheelchair,foot-walking}
+  # Obstáculos abaixo disso são ignorados no cálculo da rota (quando a câmera manda a confiança)
   confianca-minima: ${ROTA_CONFIANCA_MINIMA:0.6}
   # Cada obstáculo vira um quadrado com esse lado, enviado ao ORS em avoid_polygons
   lado-quadrado-metros: ${ROTA_LADO_QUADRADO_METROS:12}
@@ -37,10 +26,6 @@ rota:
   desvio-percentual: ${ROTA_DESVIO_PERCENTUAL:30}
   # ...ou em até esses metros, o que for maior (para rotas curtas)
   desvio-piso-metros: ${ROTA_DESVIO_PISO_METROS:100}
-
-obstaculos:
-  # Carrega obstaculos-teste.json se o banco estiver vazio
-  teste: ${OBSTACULOS_TESTE:false}
 
 springdoc:
   swagger-ui:

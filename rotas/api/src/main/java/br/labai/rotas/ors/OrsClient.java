@@ -8,7 +8,7 @@ import java.util.List;
 import java.util.Map;
 import org.springframework.http.MediaType;
 import org.springframework.stereotype.Component;
-import org.springframework.web.client.HttpClientErrorException;
+import org.springframework.web.client.RestClientResponseException;
 import org.springframework.web.client.RestClient;
 
 /** Chama o endpoint de direções do ORS e devolve só o que a API usa. */
@@ -45,13 +45,20 @@ public class OrsClient {
                     .body(corpo)
                     .retrieve()
                     .body(JsonNode.class);
-        } catch (HttpClientErrorException e) {
+        } catch (RestClientResponseException e) {
             throw erroDoOrs(e);
         }
         return ler(resposta);
     }
 
-    private OrsException erroDoOrs(HttpClientErrorException e) {
+    private OrsException erroDoOrs(RestClientResponseException e) {
+        int status = e.getStatusCode().value();
+        if (status == 429) {
+            return new OrsException(OrsException.COTA_ESGOTADA, "cota da API pública esgotada");
+        }
+        if (status == 401 || status == 403) {
+            return new OrsException(OrsException.CHAVE_INVALIDA, "ORS_API_KEY ausente ou inválida");
+        }
         try {
             JsonNode erro = json.readTree(e.getResponseBodyAsString()).path("error");
             return new OrsException(erro.path("code").asInt(), erro.path("message").asText(e.getMessage()));
