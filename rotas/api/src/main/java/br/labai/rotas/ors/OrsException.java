@@ -12,13 +12,24 @@ public class OrsException extends RuntimeException {
     public static final int CHAVE_INVALIDA = 403;
 
     private final int codigo;
+    private final boolean indisponivel;
 
     public OrsException(int codigo, String mensagem) {
+        this(codigo, mensagem, codigo == COTA_ESGOTADA || codigo == CHAVE_INVALIDA);
+    }
+
+    /** @param indisponivel o motor não atendeu (cota, chave, erro do servidor): vale tentar outro motor */
+    public OrsException(int codigo, String mensagem, boolean indisponivel) {
         super(mensagem);
         this.codigo = codigo;
+        this.indisponivel = indisponivel;
     }
 
     public int getCodigo() {
         return codigo;
+    }
+
+    public boolean isIndisponivel() {
+        return indisponivel;
     }
 }

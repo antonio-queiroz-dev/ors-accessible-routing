@@ -7,6 +7,8 @@ services:
     environment:
       ORS_URL: ${ORS_URL:-https://api.openrouteservice.org}
       ORS_API_KEY: ${ORS_API_KEY:-}
+      ORS_LOCAL_URL: ${ORS_LOCAL_URL:-}
+      ORS_LOCAL_BBOX: ${ORS_LOCAL_BBOX:--38.6995,-13.0174,-38.3034,-12.7336}
       CAMERA_URL: ${CAMERA_URL:-}
       JAVA_OPTS: ${API_JAVA_OPTS:--Xmx384m}
       TZ: ${API_FUSO:-America/Bahia}

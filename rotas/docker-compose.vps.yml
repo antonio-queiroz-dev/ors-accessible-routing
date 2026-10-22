@@ -12,6 +12,15 @@ services:
         max-size: "10m"
         max-file: "3"
 
+  # ORS próprio com o mapa de Salvador (sobe com COMPOSE_PROFILES=ors-local no .env)
+  ors:
+    restart: unless-stopped
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+
 networks:
   caddy:
     name: pawsmanager_default

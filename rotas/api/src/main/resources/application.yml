@@ -6,6 +6,13 @@ ors:
   url: ${ORS_URL:https://api.openrouteservice.org}
   # Obrigatória na API pública. Só no servidor, nunca no front nem no repositório
   chave: ${ORS_API_KEY:}
+  # ORS próprio (ex.: http://ors:8082/ors), com o mapa de uma cidade. Vazio desliga. Dentro da cobertura dele
+  # é usado primeiro (não tem cota); fora, ou se ele cair, vale a API pública. Se a pública falhar, o próprio assume
+  local:
+    url: ${ORS_LOCAL_URL:}
+    nome: ${ORS_LOCAL_NOME:salvador}
+    # Cobertura do mapa carregado: minLon,minLat,maxLon,maxLat (o recorte de Salvador)
+    bbox: ${ORS_LOCAL_BBOX:-38.6995,-13.0174,-38.3034,-12.7336}
 
 camera:
   # Endereço do back da câmera que lista obstáculos; a API acrescenta ?bbox=minLon,minLat,maxLon,maxLat.

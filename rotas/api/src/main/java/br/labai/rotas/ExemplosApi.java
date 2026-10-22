@@ -30,7 +30,8 @@ public final class ExemplosApi {
                 { "texto": "Chegar a Ladeira da Misericórdia, à direita", "distanciaMetros": 0 }
               ],
               "obstaculosEvitados": 1,
-              "desvioPossivel": true
+              "desvioPossivel": true,
+              "motor": "salvador"
             }""";
 
     public static final String ROTA_COM_AVISO = """
@@ -44,7 +45,8 @@ public final class ExemplosApi {
                 { "texto": "Vire à direita", "distanciaMetros": 42 }
               ],
               "obstaculosEvitados": 0,
-              "desvioPossivel": true
+              "desvioPossivel": true,
+              "motor": "salvador"
             }""";
 
     public static final String ROTA_SEM_DESVIO_POSSIVEL = """
@@ -58,7 +60,8 @@ public final class ExemplosApi {
                 { "texto": "Chegar a Ladeira da Misericórdia, à direita", "distanciaMetros": 0 }
               ],
               "obstaculosEvitados": 0,
-              "desvioPossivel": false
+              "desvioPossivel": false,
+              "motor": "salvador"
             }""";
 
     public static final String ERRO_FORA_DA_AREA = """
@@ -86,5 +89,5 @@ public final class ExemplosApi {
             ]""";
 
     public static final String HEALTH = """
-            { "api": "ok", "ors": "ok", "camera": "ok" }""";
+            { "api": "ok", "ors": { "salvador": "ready", "publico": "ok" }, "camera": "ok" }""";
 }

@@ -232,6 +232,7 @@ public class RotaService {
                 instrucoes,
                 evitados,
                 desvioPossivel,
+                rota.motor(),
                 null);
     }
 

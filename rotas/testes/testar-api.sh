@@ -16,7 +16,7 @@ post() { curl -s -m 40 -X POST "$B/api/rota" -H 'Content-Type: application/json'
 simulado() { echo "{\"origem\":$O,\"destino\":$D,\"obstaculos\":[{\"latitude\":$OBS_LAT,\"longitude\":$OBS_LON,\"passagem\":\"$1\",\"tipo\":\"degrau\"}]}"; }
 
 confere "health" "$(curl -s -m 20 "$B/health")" '"api":"ok"'
-confere "health: ORS ok" "$(curl -s -m 20 "$B/health")" '"ors":"'
+confere "health: ORS ok" "$(curl -s -m 20 "$B/health")" '"ors":{'
 confere "area" "$(curl -s "$B/api/area")" '"bbox"'
 confere "obstaculos com bbox" "$(curl -s "$B/api/obstaculos?bbox=-38.516,-12.983,-38.501,-12.964")" '"passagem"'
 confere "obstaculos bbox inválido" "$(curl -s "$B/api/obstaculos?bbox=abc")" 'bbox deve ser'

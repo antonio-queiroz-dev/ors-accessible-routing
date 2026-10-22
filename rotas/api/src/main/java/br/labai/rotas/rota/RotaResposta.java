@@ -20,6 +20,9 @@ public record RotaResposta(
         @Schema(description = "false quando não há caminho que evite os obstáculos de passagem bloqueada: "
                 + "a rota devolvida passa por eles e as instruções avisam onde", example = "true")
         boolean desvioPossivel,
+        @Schema(description = "Quem calculou: salvador (mapa próprio, sem cota) ou publico (API pública do openrouteservice)",
+                example = "salvador")
+        String motor,
         @Schema(description = "Só com incluirRotaSemDesvio=true: a rota direta, sem desviar de nada, para comparar")
         @JsonInclude(JsonInclude.Include.NON_NULL)
         Resumo rotaSemDesvio
@@ -27,7 +30,7 @@ public record RotaResposta(
 
     RotaResposta comRotaSemDesvio(Resumo semDesvio) {
         return new RotaResposta(distanciaMetros, duracaoSegundos, geometria, instrucoes, obstaculosEvitados,
-                desvioPossivel, semDesvio);
+                desvioPossivel, motor, semDesvio);
     }
 
     @Schema(description = "GeoJSON LineString")

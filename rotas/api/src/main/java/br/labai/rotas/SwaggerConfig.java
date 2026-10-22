@@ -44,6 +44,15 @@ public class SwaggerConfig {
 
             A API não guarda nada: os obstáculos ficam no back da câmera.
 
+            ### Dois motores de rota
+
+            | Motor | Onde | Limite |
+            |---|---|---|
+            | `salvador` | openrouteservice próprio, com o mapa de Salvador | sem cota: pode testar com mais carga, sem exageros |
+            | `publico` | API pública do openrouteservice, mundo todo | 2.000 rotas por dia e 40 por minuto |
+
+            Origem e destino dentro de Salvador usam o `salvador`; fora, o `publico`. Se o escolhido cair ou             ficar sem cota, o outro assume onde puder. O campo `motor` da resposta diz quem calculou.
+
             ### Níveis de passagem
 
             | `passagem` | O que a rota faz |
